@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+<robot name="tete" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:property name="base_length" value="0.6" />
+    <xacro:property name="base_width" value="0.4" />
+    <xacro:property name="base_height" value="0.2" />
+    <xacro:property name="wheel_radius" value="0.1" />
+    <xacro:property name="wheel_length" value="0.05" />
+
+    <xacro:include filename="link_creator.xacro" />
+
+    <link name="footprint_link" />
+    <xacro:box_rgba prefix="base" mass="10" length="${base_length}" width="${base_width}" height="${base_height}" xyz="0 0 ${base_height / 2.0}" rpy="0 0 0" rgba="0.6 0.6 0.3 1" />
+    <xacro:cylinder_rgba prefix="left_wheel" mass="2" radius="${wheel_radius}" length="${wheel_length}" xyz="0 0 0" rpy="${pi/2.0} 0 0" rgba="0.2 0.2 0.7 1" />
+    <xacro:cylinder_rgba prefix="right_wheel" mass="2" radius="${wheel_radius}" length="${wheel_length}" xyz="0 0 0" rpy="${pi/2.0} 0 0" rgba="0.2 0.2 0.7 1" />
+    <xacro:sphere_rgba prefix="caster_wheel" mass="2.5" radius="${wheel_radius/2.0}" xyz="0 0 0" rpy="0 0 0" rgba="1 1 0.1 1" />
+    <xacro:box_rgba prefix="arm_plate" mass="0.5" length="0.1" width="0.1" height="0.02" xyz="0 0 0.01" rpy="0 0 0" rgba="0.91 0.655 0.063 1" />
+    <xacro:cylinder_rgba prefix="forearm" mass="0.3" radius="0.02" length="0.3" xyz="0 0 0.15" rpy="0 0 0" rgba="0.816 0.839 0.043 1" />
+    <xacro:cylinder_rgba prefix="grabber" mass="0.3" radius="0.02" length="0.3" xyz="0 0 0.15" rpy="0 0 0" rgba="0.941 0.239 0.392 1" />
+
+    <joint name="footprint_joint" type="fixed">
+        <parent link="footprint_link" />
+        <child link="base_link" />
+        <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="base_right_wheel_joint" type="continuous">
+        <parent link="base_link" />
+        <child link="right_wheel_link" />
+        <origin xyz="${-base_length / 4.0} ${-(base_width + wheel_length) / 2.0} 0" rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <joint name="base_left_wheel_joint" type="continuous">
+        <parent link="base_link" />
+        <child link="left_wheel_link" />
+        <origin xyz="${-base_length / 4.0} ${(base_width + wheel_length) / 2.0} 0" rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <joint name="base_caster_joint" type="fixed">
+        <parent link="base_link" />
+        <child link="caster_wheel_link" />
+        <origin xyz="${base_length / 3.0} 0 ${-wheel_radius / 2.0}" rpy="0 0 0" />
+    </joint>
+
+    <joint name="plate_forearm_joint" type="revolute">
+        <parent link="arm_plate_link" />
+        <child link="forearm_link" />
+        <origin xyz="0 0 0.02" rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+        <limit lower="0" upper="${pi/2}" effort="100" velocity="100" />
+        <dynamics friction="0.05" damping="0.1" />
+    </joint>
+
+    <joint name="forearm_grabber_joint" type="revolute">
+        <parent link="forearm_link" />
+        <child link="grabber_link" />
+        <origin xyz="0 0 0.3" rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+        <limit lower="0" upper="${pi/2}" effort="100" velocity="100" />
+        <dynamics friction="0.05" damping="0.1" />
+    </joint>
+
+    <joint name="chassis_arm_joint" type="fixed">
+        <parent link="base_link" />
+        <child link="arm_plate_link" />
+        <origin xyz="${base_length/4} 0 ${base_height}" />
+    </joint>
+
+    <gazebo reference="base_link">
+        <material>Gazebo/Green</material>
+    </gazebo>
+
+    <gazebo reference="left_wheel_link">
+        <material>Gazebo/Pink</material>
+    </gazebo>
+
+    <gazebo reference="right_wheel_link">
+        <material>Gazebo/Orange</material>
+    </gazebo>
+
+    <gazebo reference="caster_wheel_link">
+        <material>Gazebo/Gray</material>
+    </gazebo>
+
+    <gazebo reference="arm_plate_link">
+        <material>Gazebo/Black</material>
+    </gazebo>
+
+    <gazebo reference="forearm_link">
+        <material>Gazebo/White</material>
+    </gazebo>
+
+    <gazebo reference="grabber_link">
+        <material name="grabber_test_color">
+            <color rgba="0.941 0.239 0.392 1" />
+        </material>
+    </gazebo>
+
+    <gazebo>
+        <plugin name="gazebo_ros_joint_state_publisher"
+            filename="libgazebo_ros_joint_state_publisher.so">
+
+        <!-- Update rate in Hertz -->
+        <update_rate>10</update_rate>
+
+        <!-- Name of joints in the model whose states will be published. -->
+        <joint_name>forearm_grabber_joint</joint_name>
+        <joint_name>plate_forearm_joint</joint_name>
+        <joint_name>base_left_wheel_joint</joint_name>
+        <joint_name>base_right_wheel_joint</joint_name>
+
+        </plugin>
+    </gazebo>
+
+    <gazebo>
+        <plugin name="gazebo_ros_diff_drive" filename="libgazebo_ros_diff_drive.so" >
+
+            <update_rate>10</update_rate>
+
+            <!-- wheels -->
+            <left_joint>base_left_wheel_joint</left_joint>
+            <right_joint>base_right_wheel_joint</right_joint>
+            <!-- kinematics -->
+            <wheel_separation>0.6</wheel_separation>
+            <wheel_diameter>0.2</wheel_diameter>
+
+
+            <!-- limits -->
+            <max_wheel_torque>20</max_wheel_torque>
+            <max_wheel_acceleration>1.0</max_wheel_acceleration>
+
+            <!-- input -->
+            <command_topic>cmd_vel</command_topic>
+
+            <!-- output -->
+            <publish_odom>true</publish_odom>
+            <publish_odom_tf>true</publish_odom_tf>
+            <publish_wheel_tf>true</publish_wheel_tf>
+
+            <odometry_topic>odom</odometry_topic>
+            <odometry_frame>odom</odometry_frame>
+            <robot_base_frame>base_link</robot_base_frame>
+
+        </plugin>
+    </gazebo>
+
+    <gazebo>
+        <plugin name="gazebo_ros_joint_pose_trajectory"
+            filename="libgazebo_ros_joint_pose_trajectory.so">
+
+        <!-- Update rate in Hz -->
+        <update_rate>2</update_rate>
+
+        </plugin>
+    </gazebo>
+
+    <xacro:include filename="camlink.xacro" />
+
+</robot>
